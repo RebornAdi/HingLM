@@ -1,0 +1,19 @@
+{
+  "n_sentences": 5000,
+  "custom_tokenizer": {
+    "avg_tokens_per_sentence": 24.2144,
+    "total_tokens": 121072,
+    "chars_per_token": 3.922781485397119
+  },
+  "gpt2_tokenizer": {
+    "avg_tokens_per_sentence": 32.2224,
+    "total_tokens": 161112,
+    "chars_per_token": 2.947880977208402
+  },
+  "token_count_reduction_pct": 24.85227667709419,
+  "per_sentence_reduction_pct": {
+    "mean": 22.25658467662407,
+    "median": 27.083333333333336,
+    "std": 18.442681101708498
+  }
+}

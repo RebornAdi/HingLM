@@ -1,0 +1,26 @@
+[
+  {
+    "label": "low_code_mixing",
+    "n_sentences": 586,
+    "custom_avg_tokens": 17.10580204778157,
+    "gpt2_avg_tokens": 17.85665529010239,
+    "mean_reduction_pct": 6.212698436173491,
+    "median_reduction_pct": 7.14285714285714
+  },
+  {
+    "label": "mid_code_mixing",
+    "n_sentences": 1333,
+    "custom_avg_tokens": 27.219054763690924,
+    "gpt2_avg_tokens": 30.739684921230307,
+    "mean_reduction_pct": 11.741598991008546,
+    "median_reduction_pct": 11.111111111111116
+  },
+  {
+    "label": "high_code_mixing",
+    "n_sentences": 3081,
+    "custom_avg_tokens": 24.266471924699772,
+    "gpt2_avg_tokens": 35.59623498864005,
+    "mean_reduction_pct": 29.857426369525573,
+    "median_reduction_pct": 32.18390804597702
+  }
+]
