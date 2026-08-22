@@ -6,12 +6,12 @@ This document reports all experimental results for HingLM: a from-scratch
 pretraining study investigating whether a BPE tokenizer trained on
 Hindi-English code-mixed text achieves better tokenization efficiency than
 GPT-2's English-trained tokenizer, and whether this translates to downstream
-language modeling performance.
+performance on a real code-mixed task.
 
 All experiments were run on a single NVIDIA GeForce RTX 3050 Laptop GPU
-(4GB VRAM) using a 10.62M parameter decoder-only transformer pretrained
-from random initialization on a subset of L3Cube-HingCorpus
-(CC BY-NC-SA 4.0).
+(4GB VRAM) using ~10.6M–24M parameter decoder-only transformers pretrained
+from random initialization on a subset of L3Cube-HingCorpus (CC BY-NC-SA 4.0),
+and fine-tuned on L3Cube-HingLID for downstream language identification.
 
 ---
 
@@ -28,61 +28,58 @@ from random initialization on a subset of L3Cube-HingCorpus
 - Exact duplicates: 2,218,078 (29.4%)
 - Lines kept: 5,147,555 (68.3%)
 
-The high duplicate rate (29.4%) is consistent with Twitter data — retweets,
-common short phrases, and bot-generated content account for a significant
-fraction of any large-scale social media scrape. This is a known property
-of the source corpus and is disclosed as a limitation.
+The high duplicate rate (29.4%) is consistent with Twitter data and is
+disclosed as a data limitation.
 
 ---
 
-## 2. Tokenizer Comparison
+## 2. Tokenizer Comparison (Intrinsic)
 
 ### 2.1 Qualitative Example
 
 **Sentence:** *"Yaar aaj bohot busy hai, but I'll definitely call you shaam ko."*
 
-| Tokenizer | Tokens | Count |
-|---|---|---|
-| Custom (HingLM) | `Yaar` `Ġaaj` `Ġbohot` `Ġbusy` `Ġhai` `,` `Ġbut` `ĠI` `'ll` `Ġdefinitely` `Ġcall` `Ġyou` `Ġshaam` `Ġko` `.` | **15** |
-| GPT-2 | `Y` `a` `ar` ` a` `aj` ` b` `oh` `ot` ` busy` ` ha` `i` `,` ` but` ` I` ` will` ` definitely` ` call` ` you` ` sh` `a` `am` ` ko` `.` | **23** |
+| Tokenizer | Count |
+|---|---|
+| Custom (HingLM) | **15** |
+| GPT-2 | **23** |
 
-### 2.2 Aggregate Quantitative Result
+GPT-2 fragments Hindi words (Yaar→3, aaj→2, bohot→3, shaam→3); the custom
+tokenizer keeps each as a single token.
 
-Evaluated on **5,000 randomly sampled held-out sentences** from the
-validation split.
+### 2.2 Aggregate Result (5,000 held-out sentences)
 
-| Metric | Custom Tokenizer | GPT-2 Tokenizer |
+| Metric | Custom | GPT-2 |
 |---|---|---|
 | Vocab size | 16,000 | 50,257 |
 | Avg tokens/sentence | 24.21 | 32.22 |
 | Chars per token | 3.92 | 2.95 |
-| Total tokens (5k sample) | 121,050 | 161,100 |
-| **Token count reduction** | **—** | **24.9% more tokens** |
 
-Per-sentence reduction: mean=22.3%, median=27.1%, std=18.4%.
+**Token count reduction: 24.9%** (per-sentence: mean=22.3%, median=27.1%, std=18.4%).
+Equivalently, the custom tokenizer fits ~33% more characters into a fixed
+context window (3.92 vs 2.95 chars/token).
 
 ### 2.3 Reduction by Code-Mixing Density
 
-| Group | N | Custom tok/sent | GPT-2 tok/sent | Mean reduction | Median reduction |
-|---|---|---|---|---|---|
-| Low (<5% Hindi words) | 586 | 17.11 | 17.86 | 6.2% | 7.1% |
-| Mid (5–20% Hindi words) | 1,333 | 27.22 | 30.74 | 11.7% | 11.1% |
-| High (>20% Hindi words) | 3,081 | 24.27 | 35.60 | **29.9%** | **32.2%** |
+| Group | N | Custom tok/sent | GPT-2 tok/sent | Mean reduction |
+|---|---|---|---|---|
+| Low (<5% Hindi) | 586 | 17.11 | 17.86 | 6.2% |
+| Mid (5–20%) | 1,333 | 27.22 | 30.74 | 11.7% |
+| High (>20%) | 3,081 | 24.27 | 35.60 | 29.9% |
 
-The reduction scales monotonically with code-mixing density, confirming
-the result is driven by code-mixed vocabulary handling, not a generic
-vocabulary-size artifact.
+Reduction scales monotonically with code-mixing density, confirming the
+effect is driven by code-mixed vocabulary handling.
 
 ### 2.4 Corpus-Level Token Count
 
-| | Custom Tokenizer | GPT-2 Tokenizer | Reduction |
+| | Custom | GPT-2 | Reduction |
 |---|---|---|---|
-| Train tokens | 128,780,032 | 173,007,839 | **25.6%** |
+| Train tokens | 128,780,032 | 173,007,839 | 25.6% |
 | Val tokens | 8,509,011 | 11,199,557 | 24.0% |
 
 ---
 
-## 3. Language Model Training
+## 3. Pretraining
 
 ### 3.1 Setup
 
@@ -93,71 +90,62 @@ vocabulary-size artifact.
 | Normalization | RMSNorm |
 | MLP | SwiGLU |
 | Optimizer | AdamW (fused) |
-| LR schedule | Cosine decay with linear warmup (500 steps) |
+| LR schedule | Cosine decay, 500-step warmup |
 | Precision | bfloat16 |
-| Context length | 256 tokens |
-| Effective batch size | 128 (micro_batch=8 × grad_accum=16) |
+| Context length | 256 |
+| Effective batch | 128 (micro 8 × accum 16) |
 | Max steps | 10,000 |
-| Hardware | RTX 3050 Laptop GPU (4GB VRAM) |
+| Hardware | RTX 3050 Laptop (4GB VRAM) |
 
 ### 3.2 Results
 
-| Metric | Custom Tokenizer Run | GPT-2 Tokenizer Run |
+| Metric | Custom Tokenizer | GPT-2 Tokenizer |
 |---|---|---|
-| Model parameters | 10.62M | ~24M |
+| Parameters | 10.62M | ~24M |
 | Vocab size | 16,000 | 50,257 |
 | Initial val loss | 9.76 | ~10.8 |
 | Final val loss | ~5.0 | ~3.9 |
 | Final perplexity | ~148 | ~49 |
 
-### 3.3 Confounds in Downstream Comparison
+### 3.3 Confounds in the Perplexity Comparison
 
-The GPT-2 run's lower perplexity is confounded by two factors:
+The GPT-2 run's lower perplexity is **not** evidence of a better tokenizer,
+due to two confounds:
 
-**1. Model size.** ~24M vs 10.62M parameters — the larger embedding layer
-alone (~19.3M params) gives substantially more capacity.
+1. **Model size.** ~24M vs 10.62M params; the larger embedding (~19.3M)
+   gives substantially more capacity.
+2. **Cross-vocabulary incomparability.** Perplexity is per-token; with 25.6%
+   more tokens for the same text, the prediction tasks differ. Bits-per-
+   character would be needed for a fair intrinsic comparison.
 
-**2. Cross-vocabulary perplexity incomparability.** Perplexity measures
-surprise per token. With 25.6% more tokens representing the same text,
-the prediction tasks are fundamentally different. Bits-per-character (BPC)
-would be required for a fair comparison.
-
-The downstream numbers should not be interpreted as evidence that GPT-2's
-tokenizer produces a better LM. The primary confound-free result is the
-tokenizer compression analysis.
+The clean, confound-free comparison is the downstream evaluation (Section 4).
 
 ---
+
 ## 4. Downstream Evaluation: Language Identification
 
 ### 4.1 Task and Setup
 
-To test whether the tokenizer's efficiency advantage carries any cost (or
-benefit) on a real downstream task, both pretrained models were fine-tuned
-on token-level language identification using L3Cube-HingLID.
+Both pretrained models were fine-tuned on token-level language identification
+(L3Cube-HingLID) to test whether the tokenizer's efficiency carries any cost
+or benefit on a real task.
 
 | Item | Value |
 |---|---|
 | Task | Token-level LID (per-word HI vs EN) |
-| Dataset | L3Cube-HingLID |
 | Train / Val / Test | 31,756 / 6,279 / 6,420 sentences |
 | Label distribution | ~72% HI, ~28% EN |
 | Fine-tuning | 3 epochs, batch 16, LR 3e-5, AdamW, 10% warmup |
-| Metric | Macro-F1 (primary, due to class imbalance) + per-class F1 |
-| Seeds | 3 (1337, 42, 2024), reported as mean ± std |
+| Metric | Macro-F1 (primary) + per-class F1 |
+| Seeds | 3 (1337, 42, 2024), mean ± std |
 
-A 2×2 design was used — {custom, GPT-2} tokenizer × {pretrained, scratch}
-initialization — to separate the tokenizer effect from the pretraining
-effect. All runs share identical hyperparameters; only tokenizer and
-initialization vary.
+A 2×2 design ({custom, GPT-2} tokenizer × {pretrained, scratch} init)
+separates the tokenizer effect from the pretraining effect. All runs use
+identical hyperparameters; only tokenizer and init vary. The classification
+model uses the same causal decoder backbone (leftward context only) — a mild
+tagging disadvantage shared by both variants, so the comparison stays fair.
 
-Note: the classification model uses the same causal (decoder-only) backbone
-as pretraining, so each token attends only to leftward context. This is a
-mild disadvantage for tagging relative to a bidirectional encoder, but both
-tokenizer variants share the constraint, so the comparison remains fair.
-
-### 4.2 Results
-
-Macro-F1 (mean ± std across 3 seeds):
+### 4.2 Results — Macro-F1 (mean ± std, 3 seeds)
 
 | | Custom tokenizer | GPT-2 tokenizer | Custom advantage |
 |---|---|---|---|
@@ -165,7 +153,7 @@ Macro-F1 (mean ± std across 3 seeds):
 | **Scratch** | 0.9359 ± 0.0008 | 0.8902 ± 0.0004 | **+4.57** |
 | **Pretraining benefit** | +0.98 | +2.21 | |
 
-Per-class F1 (pretrained condition):
+Per-class F1 (pretrained):
 
 | Tokenizer | HI-F1 | EN-F1 |
 |---|---|---|
@@ -174,49 +162,40 @@ Per-class F1 (pretrained condition):
 
 ### 4.3 Findings
 
-1. **The custom tokenizer produces significantly better downstream LID**,
-   in both initialization conditions: +3.34 macro-F1 (pretrained) and +4.57
-   (scratch). Standard deviations (<0.001) are 50–100× smaller than the
-   effect sizes, so these gaps are robust, not initialization noise.
+1. **The custom tokenizer produces significantly better downstream LID** in
+   both conditions: +3.34 (pretrained), +4.57 (scratch) macro-F1. Std <0.001
+   is 50–100× smaller than the effect — robust, not noise.
+2. **Larger advantage without pretraining** (+4.57 vs +3.34): the tokenizer
+   matters most when the model can't lean on pretrained representations.
+3. **Tokenizer choice outweighs pretraining** for this task (tokenizer effect
+   3.3–4.6 vs pretraining effect 1.0–2.2).
+4. **Gap concentrates in the harder minority (EN) class** (~4.9 EN-F1 gap vs
+   ~1.8 HI-F1 gap), mechanistically consistent with the tokenizer hypothesis.
 
-2. **The advantage is larger without pretraining** (+4.57 vs +3.34),
-   indicating the tokenizer matters most when the model cannot rely on
-   pretrained representations — consistent with the interpretation that a
-   fragmenting tokenizer forces the model to spend capacity reassembling
-   words from subword pieces.
+Unlike the perplexity comparison, this is not confounded: within each init
+condition the models differ only in tokenizer, and macro-F1 is directly
+comparable. **The efficiency gain comes not at an accuracy cost, but with a
+measurable accuracy improvement.**
 
-3. **Tokenizer choice outweighs pretraining for this task**: the tokenizer
-   effect (3.3–4.6 F1) exceeds the pretraining effect (1.0–2.2 F1) in every
-   comparison.
-
-4. **The gap concentrates in the harder minority (EN) class**: a ~4.9-point
-   EN-F1 gap in the pretrained condition vs a ~1.8-point HI-F1 gap. This is
-   mechanistically consistent with the tokenizer hypothesis — cleaner
-   word-boundary preservation helps most where data is scarcest and
-   fragmentation is most damaging.
-
-Unlike the intrinsic perplexity comparison (Section 3.3), this downstream
-comparison is not confounded by model size or cross-vocabulary metric
-incomparability: within each initialization condition the models differ only
-in tokenizer, and macro-F1 is directly comparable across tokenizers. This
-establishes that the custom tokenizer's efficiency gain comes not at an
-accuracy cost, but with a measurable accuracy improvement on a real
-code-mixed task.
+---
 
 ## 5. Summary of Findings
 
-1. **24.9% token count reduction** on 5,000 held-out sentences vs GPT-2's tokenizer.
-2. Effect scales with code-mixing density: **6.2% → 11.7% → 29.9%** (low → mid → high mixing).
-3. **25.6% fewer training tokens** at corpus scale — direct efficiency gain for training and inference.
-4. Both models trained stably from scratch on consumer hardware (4GB VRAM).
-5. Direct perplexity comparison is confounded by model size and cross-vocabulary incomparability.
+1. **24.9% token reduction** vs GPT-2 on held-out text (33% more chars/token).
+2. Effect **scales with code-mixing density** (6.2% → 29.9%).
+3. **25.6% fewer training tokens** at corpus scale.
+4. Both models **trained stably from scratch** on 4GB VRAM.
+5. **Downstream: +3.34 to +4.57 macro-F1** on LID, robust across 3 seeds —
+   efficiency gain comes with an accuracy gain, not a cost.
+6. Intrinsic perplexity comparison is confounded and is not used as evidence.
 
 ---
 
 ## 6. Limitations
 
-- 29.4% exact-duplicate rate in raw Twitter data
-- Code-mixing density estimated via heuristic word list, not ground-truth language-ID
-- 10.62M parameters is far below production LLM scale
-- Downstream comparison confounds (Section 3.3)
-- Single seed per run, no significance testing
+- 29.4% exact-duplicate rate in raw Twitter data.
+- Code-mixing density (Section 2.3) uses a heuristic word list, not ground-truth LID.
+- ~10.6M–24M params — far below production scale.
+- Causal (decoder-only) backbone is suboptimal for tagging vs bidirectional encoders; used for both variants to keep the comparison fair.
+- Single downstream task (LID); sentiment or other tasks would broaden the claim.
+- Perplexity comparison confounded by model size and cross-vocabulary metric issues (Section 3.3).
