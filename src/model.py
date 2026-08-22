@@ -203,6 +203,84 @@ class GPT(nn.Module):
         ]
         return torch.optim.AdamW(groups, lr=learning_rate, betas=betas, fused=torch.cuda.is_available())
 
+class GPTForTokenClassification(nn.Module):
+    """
+    Wraps the GPT backbone with a token-classification head for the LID task.
+    Reuses the pretrained transformer; adds one linear layer mapping each
+    token's final hidden state to num_labels logits.
+
+    Note: the backbone uses causal attention (each token sees only leftward
+    context). This is a valid but mildly limiting setup for tagging vs a
+    bidirectional encoder — disclosed honestly in the writeup. Both tokenizer
+    variants share this constraint, so the comparison stays fair.
+    """
+
+    def __init__(self, cfg, num_labels=2):
+        super().__init__()
+        self.cfg = cfg
+        self.num_labels = num_labels
+
+        self.tok_emb = nn.Embedding(cfg.vocab_size, cfg.n_embd)
+        self.drop = nn.Dropout(cfg.dropout)
+        self.blocks = nn.ModuleList([Block(cfg) for _ in range(cfg.n_layer)])
+        self.norm_f = RMSNorm(cfg.n_embd)
+        self.classifier = nn.Linear(cfg.n_embd, num_labels)
+
+        head_dim = cfg.n_embd // cfg.n_head
+        cos, sin = precompute_rope_freqs(head_dim, cfg.block_size)
+        self.register_buffer("rope_cos", cos, persistent=False)
+        self.register_buffer("rope_sin", sin, persistent=False)
+
+        self.grad_checkpointing = False
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def load_backbone_from_gpt(self, gpt_state_dict):
+        """
+        Copy pretrained backbone weights (tok_emb, blocks, norm_f) from a saved
+        GPT checkpoint's state_dict. The classifier head stays random.
+        lm_head is skipped (not used for token classification).
+        """
+        own = self.state_dict()
+        copied, skipped = 0, 0
+        for k, v in gpt_state_dict.items():
+            if k in own and own[k].shape == v.shape:
+                own[k] = v
+                copied += 1
+            else:
+                skipped += 1
+        self.load_state_dict(own)
+        print(f"  loaded backbone: {copied} tensors copied, {skipped} skipped (lm_head/classifier)")
+
+    def forward(self, input_ids, labels=None):
+        B, T = input_ids.shape
+        x = self.drop(self.tok_emb(input_ids))
+        cos, sin = self.rope_cos.to(x.device), self.rope_sin.to(x.device)
+
+        for block in self.blocks:
+            if self.grad_checkpointing and self.training:
+                x = torch.utils.checkpoint.checkpoint(block, x, cos, sin, use_reentrant=False)
+            else:
+                x = block(x, cos, sin)
+
+        x = self.norm_f(x)
+        logits = self.classifier(x)  # (B, T, num_labels)
+
+        loss = None
+        if labels is not None:
+            loss = F.cross_entropy(
+                logits.view(-1, self.num_labels),
+                labels.view(-1),
+                ignore_index=-100,
+            )
+        return logits, loss
 
 if __name__ == "__main__":
     from config import ModelConfig

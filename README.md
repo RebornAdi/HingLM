@@ -127,8 +127,83 @@ tokenizer produces a better LM. The primary confound-free result is the
 tokenizer compression analysis.
 
 ---
+## 4. Downstream Evaluation: Language Identification
 
-## 4. Summary of Findings
+### 4.1 Task and Setup
+
+To test whether the tokenizer's efficiency advantage carries any cost (or
+benefit) on a real downstream task, both pretrained models were fine-tuned
+on token-level language identification using L3Cube-HingLID.
+
+| Item | Value |
+|---|---|
+| Task | Token-level LID (per-word HI vs EN) |
+| Dataset | L3Cube-HingLID |
+| Train / Val / Test | 31,756 / 6,279 / 6,420 sentences |
+| Label distribution | ~72% HI, ~28% EN |
+| Fine-tuning | 3 epochs, batch 16, LR 3e-5, AdamW, 10% warmup |
+| Metric | Macro-F1 (primary, due to class imbalance) + per-class F1 |
+| Seeds | 3 (1337, 42, 2024), reported as mean ± std |
+
+A 2×2 design was used — {custom, GPT-2} tokenizer × {pretrained, scratch}
+initialization — to separate the tokenizer effect from the pretraining
+effect. All runs share identical hyperparameters; only tokenizer and
+initialization vary.
+
+Note: the classification model uses the same causal (decoder-only) backbone
+as pretraining, so each token attends only to leftward context. This is a
+mild disadvantage for tagging relative to a bidirectional encoder, but both
+tokenizer variants share the constraint, so the comparison remains fair.
+
+### 4.2 Results
+
+Macro-F1 (mean ± std across 3 seeds):
+
+| | Custom tokenizer | GPT-2 tokenizer | Custom advantage |
+|---|---|---|---|
+| **Pretrained** | **0.9457 ± 0.0003** | 0.9123 ± 0.0004 | **+3.34** |
+| **Scratch** | 0.9359 ± 0.0008 | 0.8902 ± 0.0004 | **+4.57** |
+| **Pretraining benefit** | +0.98 | +2.21 | |
+
+Per-class F1 (pretrained condition):
+
+| Tokenizer | HI-F1 | EN-F1 |
+|---|---|---|
+| Custom | 0.9683 ± 0.0002 | 0.9231 ± 0.0004 |
+| GPT-2 | 0.9505 ± 0.0002 | 0.8740 ± 0.0006 |
+
+### 4.3 Findings
+
+1. **The custom tokenizer produces significantly better downstream LID**,
+   in both initialization conditions: +3.34 macro-F1 (pretrained) and +4.57
+   (scratch). Standard deviations (<0.001) are 50–100× smaller than the
+   effect sizes, so these gaps are robust, not initialization noise.
+
+2. **The advantage is larger without pretraining** (+4.57 vs +3.34),
+   indicating the tokenizer matters most when the model cannot rely on
+   pretrained representations — consistent with the interpretation that a
+   fragmenting tokenizer forces the model to spend capacity reassembling
+   words from subword pieces.
+
+3. **Tokenizer choice outweighs pretraining for this task**: the tokenizer
+   effect (3.3–4.6 F1) exceeds the pretraining effect (1.0–2.2 F1) in every
+   comparison.
+
+4. **The gap concentrates in the harder minority (EN) class**: a ~4.9-point
+   EN-F1 gap in the pretrained condition vs a ~1.8-point HI-F1 gap. This is
+   mechanistically consistent with the tokenizer hypothesis — cleaner
+   word-boundary preservation helps most where data is scarcest and
+   fragmentation is most damaging.
+
+Unlike the intrinsic perplexity comparison (Section 3.3), this downstream
+comparison is not confounded by model size or cross-vocabulary metric
+incomparability: within each initialization condition the models differ only
+in tokenizer, and macro-F1 is directly comparable across tokenizers. This
+establishes that the custom tokenizer's efficiency gain comes not at an
+accuracy cost, but with a measurable accuracy improvement on a real
+code-mixed task.
+
+## 5. Summary of Findings
 
 1. **24.9% token count reduction** on 5,000 held-out sentences vs GPT-2's tokenizer.
 2. Effect scales with code-mixing density: **6.2% → 11.7% → 29.9%** (low → mid → high mixing).
@@ -138,7 +213,7 @@ tokenizer compression analysis.
 
 ---
 
-## 5. Limitations
+## 6. Limitations
 
 - 29.4% exact-duplicate rate in raw Twitter data
 - Code-mixing density estimated via heuristic word list, not ground-truth language-ID
