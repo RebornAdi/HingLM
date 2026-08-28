@@ -8,8 +8,7 @@ Hindi-English code-mixed text achieves better tokenization efficiency than
 GPT-2's English-trained tokenizer, and whether this translates to downstream
 performance on a real code-mixed task.
 
-All experiments were run on a single NVIDIA GeForce RTX 3050 Laptop GPU
-(4GB VRAM) using ~10.6M–24M parameter decoder-only transformers pretrained
+All experiments were run using ~10.6M–24M parameter decoder-only transformers pretrained
 from random initialization on a subset of L3Cube-HingCorpus (CC BY-NC-SA 4.0),
 and fine-tuned on L3Cube-HingLID for downstream language identification.
 
