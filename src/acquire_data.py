@@ -2,7 +2,7 @@ import argparse
 import os
 import random
 
-RAW_DIR = r"C:\Users\Aditya Atul Deshmukh\Desktop\HingLM\data\raw"
+RAW_DIR ="Raw data path"
 TRAIN_FULL = os.path.join(RAW_DIR, "hingcorpus_train_full.txt")
 VAL_FULL = os.path.join(RAW_DIR, "hingcorpus_val_full.txt")
 TRAIN_SUBSET = os.path.join(RAW_DIR, "hingcorpus_train_subset.txt")
