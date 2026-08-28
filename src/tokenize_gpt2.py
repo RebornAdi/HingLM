@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
 
-PROCESSED_DIR = r"C:\Users\Aditya Atul Deshmukh\Desktop\HingLM\data\processed"
+PROCESSED_DIR = "Processed data path"
 TRAIN_CLEAN = os.path.join(PROCESSED_DIR, "train_clean.txt")
 VAL_CLEAN = os.path.join(PROCESSED_DIR, "val_clean.txt")
 
