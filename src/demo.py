@@ -1,11 +1,4 @@
-"""
-Minimal demo UI for your trained model. Run after you have at least one checkpoint.
 
-    python demo.py --checkpoint ../checkpoints/rope_step5000.pt --tokenizer_dir ../tokenizer
-
-Opens a local Gradio interface; add `share=True` in launch() if you want a
-public link to put in your README / show in an interview.
-"""
 
 import argparse
 
