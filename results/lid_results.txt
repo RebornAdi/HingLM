@@ -26,3 +26,15 @@ tokenizer=custom init=pretrained seed=31337 macro_f1=0.9461 acc=0.9554 HI_f1=0.9
 tokenizer=custom init=scratch seed=31337 macro_f1=0.9361 acc=0.9471 HI_f1=0.9626 EN_f1=0.9097
 tokenizer=gpt2 init=pretrained seed=31337 macro_f1=0.9122 acc=0.9288 HI_f1=0.9504 EN_f1=0.8741
 tokenizer=gpt2 init=scratch seed=31337 macro_f1=0.8908 acc=0.9129 HI_f1=0.9399 EN_f1=0.8418
+tokenizer=custom init=pretrained seed=99 macro_f1=0.9458 acc=0.9552 HI_f1=0.9683 EN_f1=0.9233
+tokenizer=custom init=scratch seed=99 macro_f1=0.9366 acc=0.9473 HI_f1=0.9627 EN_f1=0.9105
+tokenizer=gpt2 init=pretrained seed=99 macro_f1=0.9122 acc=0.9288 HI_f1=0.9504 EN_f1=0.8739
+tokenizer=gpt2 init=scratch seed=99 macro_f1=0.8916 acc=0.9137 HI_f1=0.9405 EN_f1=0.8426
+tokenizer=custom init=pretrained seed=500 macro_f1=0.9458 acc=0.9551 HI_f1=0.9683 EN_f1=0.9232
+tokenizer=custom init=scratch seed=500 macro_f1=0.9349 acc=0.9460 HI_f1=0.9618 EN_f1=0.9079
+tokenizer=gpt2 init=pretrained seed=500 macro_f1=0.9127 acc=0.9292 HI_f1=0.9507 EN_f1=0.8747
+tokenizer=gpt2 init=scratch seed=500 macro_f1=0.8906 acc=0.9125 HI_f1=0.9396 EN_f1=0.8415
+tokenizer=custom init=pretrained seed=12345 macro_f1=0.9460 acc=0.9553 HI_f1=0.9684 EN_f1=0.9236
+tokenizer=custom init=scratch seed=12345 macro_f1=0.9363 acc=0.9472 HI_f1=0.9627 EN_f1=0.9099
+tokenizer=gpt2 init=pretrained seed=12345 macro_f1=0.9112 acc=0.9279 HI_f1=0.9498 EN_f1=0.8726
+tokenizer=gpt2 init=scratch seed=12345 macro_f1=0.8894 acc=0.9116 HI_f1=0.9390 EN_f1=0.8398

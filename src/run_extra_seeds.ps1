@@ -3,7 +3,7 @@
 # Existing seeds 1337, 42, 2024 are already in lid_results.txt - do NOT re-run them.
 # Run this from your src/ directory: .\run_extra_seeds.ps1
 
-$seeds = @(7, 123, 2718, 31337)
+$seeds = @(99, 500, 12345)
 $tokenizers = @("custom", "gpt2")
 $inits = @("pretrained", "scratch")
 
