@@ -70,7 +70,7 @@ def load_split(path, tokenizer, kind, block_size=256):
         examples.append({"input_ids": ids[:block_size], "labels": labels[:block_size]})
     return examples
 if __name__ == "__main__":
-    path = r"C:\Users\Aditya Atul Deshmukh\Desktop\HingLM\data\mixed\train.txt"
+    path = r"train_path"
     sents = parse_conll(path)
     print(f"Parsed {len(sents):,} sentences")
     words, labels = sents[0]
